@@ -1,6 +1,21 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="./node_modules/nexmo-stitch/dist/conversationClient.js"></script>
 <h2>Nexmo</h2>
-
-<p>Call<p>
-
+<!-- IP MESSAGING -->
+<section id="messages">
+    <h1>Messages</h1>
+    <div id="messageFeed"></div>
+    <textarea id="messageTextarea"></textarea>
+    <br>
+    <button id="send">Send</button>
+</section>
+<!-- AUDIO -->
+<p id="call">Call</p>
+<div>
+    <audio id="audio">
+        <source>
+    </audio>
+    <button id="enable">Enable Audio</button>
+    <button id="disable">Disable Audio</button>
+</div>
 <script src="./main.js"></script>
