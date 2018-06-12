@@ -2,20 +2,38 @@
 <script src="./node_modules/nexmo-stitch/dist/conversationClient.js"></script>
 <h2>Nexmo</h2>
 <!-- IP MESSAGING -->
-<section id="messages">
-    <h1>Messages</h1>
-    <div id="messageFeed"></div>
-    <textarea id="messageTextarea"></textarea>
-    <br>
-    <button id="send">Send</button>
-</section>
+<!--   <section id="messages">
+      <h1>Messages</h1>
+      <div id="messageFeed"></div>
+      <textarea id="messageTextarea"></textarea>
+      <br>
+      <button id="send">Send</button>
+  </section> -->
 <!-- AUDIO -->
-<p id="call">Call</p>
-<div>
+  <style>
+    #call-controls {
+      display: none;
+    }
+  </style>
+  <section id="conversations">
+    <form id="call-phone-form">
+      <h1>Call phone</h1>
+      <input type="text" name="phonenumber" value="">
+      <input type="submit" value="Call" />
+    </form>
+    <div id="call-controls">
+      <span id="call-members">You are in a call with </span><button id="hang-up">Hang Up</button>
+    </div>
+    <div>
     <audio id="audio">
         <source>
     </audio>
     <button id="enable">Enable Audio</button>
     <button id="disable">Disable Audio</button>
 </div>
+  </section>
+
+
+
+<!-- <p id="call">Call</p> -->
 <script src="./main.js"></script>

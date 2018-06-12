@@ -1,6 +1,6 @@
 var base_url = "https://memessaging-gateway.herokuapp.com"
 var ACTIVE_CONVERSATION = {},
-    USERS, WEB_ACTIVE_USER, MOBILE_ACTIVE_USER;
+    USERS, WEB_ACTIVE_USER, MOBILE_ACTIVE_USER, CONV_CLIENT;
 
 $(document).ready(function() {
     $("#call").click(function() {})
@@ -77,7 +77,7 @@ function createConversation(displayName) {
     $.ajax({
         url: base_url + '/conversations',
         type: 'POST',
-        dataType: 'jsonp',
+        dataType: 'json',
         data: {
             "displayName": displayName
         },
@@ -97,10 +97,10 @@ function getConversations() {
         $.ajax({
             url: base_url + '/conversations',
             type: 'GET',
-            dataType: 'jsonp',
+            dataType: 'json',
             success: function(data) {
                 console.log("Conversations:", data._embedded.conversations);
-                resolve(data)
+                resolve(data._embedded.conversations)
             },
             error: function(err) {
                 console.log('Failed!', err);
@@ -121,7 +121,7 @@ function addUserToConversation(activeUser, conversation) {
                 action: "join"
             },
             success: function(data) {
-                if (data.body.code === "conversation:error:member-already-joined") {
+                if (data.body && data.body.code === "conversation:error:member-already-joined") {
                     data = { "status": "success" }
                 }
 
@@ -139,9 +139,9 @@ function addUserToConversation(activeUser, conversation) {
 var onLoad = function() {
     return new Promise((resolve, reject) => {
         //Get Conversations
-        CONVERSATIONS = getConversations().then(function(convList) {
-            if (convList.count > 0) {
-                ACTIVE_CONVERSATION = convList._embedded.conversations[0];
+        getConversations().then(function(convList) {
+            if (convList.length > 0) {
+                ACTIVE_CONVERSATION = convList[0]
 
                 //Get Users
                 getUsers().then(function(userList) {
@@ -155,12 +155,12 @@ var onLoad = function() {
                             //Add ACTIVE_USER to conversation
                             addUserToConversation(WEB_ACTIVE_USER, ACTIVE_CONVERSATION).then(function(data) {
                                 console.log("active User added to active Conversation", data);
-                                //COMPLETE ON-LOAD
-                                resolve()
                             })
 
                             addUserToConversation(MOBILE_ACTIVE_USER, ACTIVE_CONVERSATION).then(function(data) {
                                 console.log("active User added to active Conversation", data);
+                                //COMPLETE ON-LOAD
+                                resolve()
                             })
                         })
 
@@ -174,7 +174,7 @@ var onLoad = function() {
 
 
                     } else {
-                        createUser("activeUser" + math.random()).then(function(user) {
+                        createUser("activeUser" + Math.random()).then(function(user) {
                             onLoad();
                         })
                         console.log("NEED TO CREATE USER - No active user.")
@@ -183,21 +183,47 @@ var onLoad = function() {
                     console.log("USERS: ", USERS)
                 })
             } else {
-                CONVERSATIONS = createConversation("active-conversation");
+                ACTIVE_CONVERSATION = createConversation("active-conversation");
             }
 
-            console.log("CONVERSATIONS: ", CONVERSATIONS)
+            console.log("CONVERSATION: ", ACTIVE_CONVERSATION)
         });
     });
 }
 
 class ChatApp {
     constructor() {
-        this.messageTextarea = document.getElementById('messageTextarea')
-        this.messageFeed = document.getElementById('messageFeed')
-        this.sendButton = document.getElementById('send')
+        // this.messageTextarea = document.getElementById('messageTextarea')
+        // this.messageFeed = document.getElementById('messageFeed')
+        // this.sendButton = document.getElementById('send')
+        this.audio = document.getElementById('audio')
+        this.enableButton = document.getElementById('enable')
+        this.disableButton = document.getElementById('disable')
+        this.callControls = document.getElementById('call-controls')
+        this.hangUpButton = document.getElementById('hang-up')
+        this.callMembers = document.getElementById('call-members')
+        this.callPhoneForm = document.getElementById('call-phone-form')
+
         this.setupUserEvents();
-        this.joinConversation(WEB_ACTIVE_USER.jwt.user_jwt);
+        if (window.location.search.includes("launch")) {
+            localStorage.setItem("active_user", JSON.stringify(WEB_ACTIVE_USER));
+            this.joinConversation(WEB_ACTIVE_USER.jwt.user_jwt);
+        } else {
+            JSON.parse(localStorage.getItem('active_user'));
+            localStorage.setItem("active_user", JSON.stringify(MOBILE_ACTIVE_USER));
+            this.joinConversation(MOBILE_ACTIVE_USER.jwt.user_jwt);
+        }
+    }
+
+    handleCall(call) {
+        this.setupAudioStream(call.application.activeStream.stream)
+        this.call = call
+        call.on("call:member:state", (from, state, event) => {
+            if (state = "ANSWERED") {
+                this.showCallControls(from)
+            }
+            console.log("member: " + from.user.name + " has " + state);
+        });
     }
 
     errorLogger(error) {
@@ -211,20 +237,23 @@ class ChatApp {
     }
 
     authenticate() {
-        return ACTIVE_USER.jwt
+        var user = JSON.parse(localStorage.getItem('active_user'));
+        return user.jwt
     }
 
     setupConversationEvents(conversation) {
         this.conversation = conversation
         console.log('*** Conversation Retrieved', conversation)
         console.log('*** Conversation Member', conversation.me)
+        if (conversation.me.state === "JOINED") { window.alert("Begin") }
 
         // Bind to events on the conversation
         conversation.on('text', (sender, message) => {
             console.log('*** Message received', sender, message)
-            const date = new Date(Date.parse(message.timestamp))
-            const text = `${sender.user.name} @ ${date}: <b>${message.body.text}</b><br>`
-            this.messageFeed.innerHTML = text + this.messageFeed.innerHTML
+        })
+
+        conversation.on("member:media", (member, event) => {
+            console.log(`*** Member changed media state`, member, event)
         })
     }
 
@@ -232,22 +261,99 @@ class ChatApp {
         new ConversationClient({ debug: false })
             .login(userToken)
             .then(app => {
-                console.log('*** Logged into app', app)
+                this.app = app
+
+                this.app.on("member:call", (member, call) => {
+                    if (window.confirm(`Incoming call from ${member.user.name}. Do you want to answer?`)) {
+                        this.call = call
+                        call.answer().then((stream) => {
+                            this.setupAudioStream(stream)
+                            this.showCallControls(member)
+                        })
+                    } else {
+                        call.hangUp()
+                    }
+                })
                 return app.getConversation(ACTIVE_CONVERSATION.uuid)
             })
             .then(this.setupConversationEvents.bind(this))
             .catch(this.errorLogger)
     }
 
+    setupAudioStream(stream) {
+        // Older browsers may not have srcObject
+        if ("srcObject" in this.audio) {
+            this.audio.srcObject = stream;
+        } else {
+            // Avoid using this in new browsers, as it is going away.
+            this.audio.src = window.URL.createObjectURL(stream);
+        }
+
+        this.audio.onloadedmetadata = () => {
+            this.audio.play();
+        }
+    }
+
+    showCallControls(member) {
+        this.callControls.style.display = "block"
+        this.callMembers.textContent = this.callMembers.textContent + " " + member.invited_by || member.user.name
+    }
+
     setupUserEvents() {
-        this.sendButton.addEventListener('click', () => {
-            this.conversation.sendText(this.messageTextarea.value).then(() => {
-                this.eventLogger('text')()
-                this.messageTextarea.value = ''
+        this.disableButton.addEventListener('click', () => {
+            this.conversation.media.disable().then(this.eventLogger('member:media')).catch(this.errorLogger)
+        })
+
+        this.callPhoneForm.addEventListener('submit', (event) => {
+            event.preventDefault()
+            this.app.callPhone(this.callPhoneForm.children.phonenumber.value)
+                .then(this.handleCall)
+        })
+
+        this.hangUpButton.addEventListener('click', () => {
+            this.call.hangUp()
+            this.callControls.style.display = "none"
+        })
+
+
+        this.enableButton.addEventListener('click', () => {
+
+            this.conversation.media.enable().then(stream => {
+                this.setupAudioStream(stream)
+
+                this.eventLogger('member:media')()
+            }).catch(this.errorLogger)
+        })
+
+        this.enableButton.addEventListener('click', () => {
+            this.conversation.media.enable().then(stream => {
+                // Older browsers may not have srcObject
+                if ("srcObject" in this.audio) {
+                    this.audio.srcObject = stream;
+                } else {
+                    // Avoid using this in new browsers, as it is going away.
+                    this.audio.src = window.URL.createObjectURL(stream);
+                }
+
+                this.audio.onloadedmetadata = () => {
+                    this.audio.play();
+                }
+
+                this.eventLogger('member:media')()
             }).catch(this.errorLogger)
         })
     }
+
+    showConversationHistory(conversation) {
+
+        switch (value.type) {
+            case 'member:media':
+                eventsHistory = `${conversation.members[value.from].user.name} @ ${date}: <b>${value.body.audio ? "enabled" : "disabled"} audio</b><br>` + eventsHistory
+                break;
+        }
+    }
 }
+
 
 onLoad().then(function() {
     new ChatApp()
