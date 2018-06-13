@@ -204,9 +204,9 @@ var onLoad = function () {
 class ChatApp {
     constructor() {
         this.audio = document.getElementById('audio')
-        this.callControls = document.getElementById('call-controls')
-        this.hangUpButton = document.getElementById('hang-up')
         this.callPhoneForm = document.getElementById('call-phone-form')
+        this.phoneIcon = document.getElementById('phone-icon')
+        this.call ={};
 
         this.setupUserEvents();
         if (window.location.search.includes("launch")) {
@@ -251,19 +251,20 @@ class ChatApp {
                 this.app = app
 
                 this.app.on("call:state:changed", (call) => {
+                    this.call = call;
+
                     console.log("Call State: ", call.state)
                     if (call.state === "started") {
-                        this.showCallControls(call.from)
+                        this.call = call;
+                        this.showCallControls();
                     }
                     if (call.state === "unanswered") {
                         console.log("unanswered")
                         this.call = call;
-                        this.hideCallControls()
                     }
                     if (call.state === "rejected") {
                         console.log("completed")
                         this.call = call;
-                        this.hideCallControls()
                     }
                 })
                 return app.getConversation(ACTIVE_CONVERSATION.uuid)
@@ -272,12 +273,19 @@ class ChatApp {
             .catch(this.errorLogger)
     }
 
-    showCallControls(member) {
-        this.callControls.style.display = "block"
+    showCallControls() {
+        console.log("showCC")
+        document.getElementById('phone-icon').src = "./hangup.png"
+    }
+
+    hangup() {
+        this.call.hangUp();
+        this.hideCallControls()
     }
 
     hideCallControls() {
-        this.callControls.style.display = "none"
+        console.log("hideCC")
+        document.getElementById('phone-icon').src = "./phone.png"
     }
 
     setupAudioStream(stream) {
@@ -295,16 +303,14 @@ class ChatApp {
     }
 
     setupUserEvents() {
+        this.phoneIcon.addEventListener('click', () => {
+            if (this.phoneIcon.src.includes("hangup")) {
+                this.hangup();
+            }
 
-
-        this.callPhoneForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            this.app.callPhone(this.callPhoneForm.children.phonenumber.value)
-        })
-
-        this.hangUpButton.addEventListener('click', () => {
-            this.call.hangUp()
-            this.callControls.style.display = "none"
+            if (this.phoneIcon.src.includes("phone")) {
+                this.app.callPhone(document.getElementById("to-num").value)
+            }
         })
     }
 }
