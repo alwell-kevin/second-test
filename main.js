@@ -203,15 +203,9 @@ var onLoad = function () {
 
 class ChatApp {
     constructor() {
-        // this.messageTextarea = document.getElementById('messageTextarea')
-        // this.messageFeed = document.getElementById('messageFeed')
-        // this.sendButton = document.getElementById('send')
         this.audio = document.getElementById('audio')
-        this.enableButton = document.getElementById('enable')
-        this.disableButton = document.getElementById('disable')
         this.callControls = document.getElementById('call-controls')
         this.hangUpButton = document.getElementById('hang-up')
-        this.callMembers = document.getElementById('call-members')
         this.callPhoneForm = document.getElementById('call-phone-form')
 
         this.setupUserEvents();
@@ -224,17 +218,6 @@ class ChatApp {
             this.joinConversation(MOBILE_ACTIVE_USER.jwt.user_jwt);
         }
     }
-
-    // handleCall(call) {
-    //     this.setupAudioStream(call.application.activeStream.stream)
-    //     this.call = call
-    //     call.on("call:member:state", (from, state, event) => {
-    //         if (state = "ANSWERED") {
-    //             this.showCallControls(from)
-    //         }
-    //         console.log("member: " + from.user.name + " has " + state);
-    //     });
-    // }
 
     errorLogger(error) {
         console.log(error)
@@ -254,19 +237,9 @@ class ChatApp {
     setupConversationEvents(conversation) {
         this.conversation = conversation
         console.log('*** Conversation Retrieved', conversation)
-        console.log('*** Conversation Member', conversation.me)
         if (conversation.me.state === "JOINED") {
             window.alert("Begin")
         }
-
-        // Bind to events on the conversation
-        conversation.on('text', (sender, message) => {
-            console.log('*** Message received', sender, message)
-        })
-
-        conversation.on("member:media", (member, event) => {
-            console.log(`*** Member changed media state`, member, event)
-        })
     }
 
     joinConversation(userToken) {
@@ -279,37 +252,18 @@ class ChatApp {
 
                 this.app.on("call:state:changed", (call) => {
                     console.log("Call State: ", call.state)
-                    if (call.MEMBER_CALL_STATES.RINGING === "ringing") {
-                        console.log("ringing")
-                    }
-                    if (call.MEMBER_CALL_STATES.ANSWERED === "answered") {
-                        console.log("answered")
-                        this.call = call;
+                    if (call.state === "started") {
                         this.showCallControls(call.from)
                     }
-                    if (call.state === call.CALL_STATES.STARTED) {
-
-                        call.on("call:member:state", (from, state, event) => {
-                            if (state = "ANSWERED") {
-                                console.log("ACTIVE_CONVERSATION: ", ACTIVE_CONVERSATION);
-                                this.showCallControls(from)
-                                console.log("member: " + from.user.name + " has " + state);
-
-                            }
-                            console.log("member: " + from.user.name + " has " + state);
-                        });
+                    if (call.state === "unanswered") {
+                        console.log("unanswered")
+                        this.call = call;
+                        this.hideCallControls()
                     }
-                })
-
-                this.app.on("member:call", (member, call) => {
-                    if (window.confirm(`Incoming call from ${member.user.name}. Do you want to answer?`)) {
-                        this.call = call
-                        call.answer().then((stream) => {
-                            this.setupAudioStream(stream)
-                            this.showCallControls(member)
-                        })
-                    } else {
-                        call.hangUp();
+                    if (call.state === "rejected") {
+                        console.log("completed")
+                        this.call = call;
+                        this.hideCallControls()
                     }
                 })
                 return app.getConversation(ACTIVE_CONVERSATION.uuid)
@@ -320,6 +274,10 @@ class ChatApp {
 
     showCallControls(member) {
         this.callControls.style.display = "block"
+    }
+
+    hideCallControls() {
+        this.callControls.style.display = "none"
     }
 
     setupAudioStream(stream) {
@@ -337,12 +295,10 @@ class ChatApp {
     }
 
     setupUserEvents() {
-        this.disableButton.addEventListener('click', () => {
-            this.conversation.media.disable().then(this.eventLogger('member:media')).catch(this.errorLogger)
-        })
-        
+
+
         this.callPhoneForm.addEventListener('submit', (event) => {
-            event.preventDefault()
+            event.preventDefault();
             this.app.callPhone(this.callPhoneForm.children.phonenumber.value)
         })
 
@@ -350,43 +306,6 @@ class ChatApp {
             this.call.hangUp()
             this.callControls.style.display = "none"
         })
-
-
-        this.enableButton.addEventListener('click', () => {
-
-            this.conversation.media.enable().then(stream => {
-                this.setupAudioStream(stream)
-
-                this.eventLogger('member:media')()
-            }).catch(this.errorLogger)
-        })
-
-        this.enableButton.addEventListener('click', () => {
-            this.conversation.media.enable().then(stream => {
-                // Older browsers may not have srcObject
-                if ("srcObject" in this.audio) {
-                    this.audio.srcObject = stream;
-                } else {
-                    // Avoid using this in new browsers, as it is going away.
-                    this.audio.src = window.URL.createObjectURL(stream);
-                }
-
-                this.audio.onloadedmetadata = () => {
-                    this.audio.play();
-                }
-
-                this.eventLogger('member:media')()
-            }).catch(this.errorLogger)
-        })
-    }
-
-    showConversationHistory(conversation) {
-
-        switch (value.type) {
-            case 'member:media':
-                eventsHistory = `${conversation.members[value.from].user.name} @ ${date}: <b>${value.body.audio ? "enabled" : "disabled"} audio</b><br>` + eventsHistory
-                break;
-        }
     }
 }
 
