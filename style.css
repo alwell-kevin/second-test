@@ -1,0 +1,17 @@
+#call-controls {
+    display: none;
+  }
+
+#phone-icon {
+    cursor:pointer;
+    height:35px;
+    width: 35px;
+}
+
+input[type=submit] {
+    border: 0;
+    display: block;
+    margin-bottom:-10px;
+    height: 35px;
+    width: 35px;
+}
