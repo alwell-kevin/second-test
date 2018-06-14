@@ -1,11 +1,10 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="./node_modules/nexmo-stitch/dist/conversationClient.js"></script>
-<h2>Nexmo</h2>
-
+<img style="height: 20px;" src="./logo.png"></img>
+<h2>Sugar CRM</h2>
 <section id="conversations">
   <form id="call-phone-form">
-    <h1>Call phone</h1>
-    <input id="to-num" type="text" name="phonenumber" value="">
+    <input style="height: 30px; margin-left: 35px;" id="to-num" type="text" name="phonenumber" value="">
     <img type="image" value="Call" id="phone-icon" src="./phone.png">
   </form>
   <div>
@@ -13,6 +12,21 @@
       <source>
     </audio>
   </div>
+</section>
+<section style="text-align: left;cursor: pointer;">
+    <form class="form">
+        <h2>Customers</h2>
+        <div class="inputGroup">
+          <input id="radio1" name="radio" type="radio"/>
+          <label for="radio1">Kevin Alwell - PreSales +1 (732) 615-7295</label>
+        </div>
+        <div class="inputGroup">
+          <input id="radio2" name="radio" type="radio"/>
+          <label for="radio2">Tony Chan - PreSales +1 (408) 772-6269</label>
+        </div>
+      </form>
+      
+      <link href="https://fonts.googleapis.com/css?family=Fira+Sans" rel="stylesheet">
 </section>
 
 <script src="./main.js"></script>

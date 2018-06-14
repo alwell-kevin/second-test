@@ -3,7 +3,14 @@ var ACTIVE_CONVERSATION = {},
     USERS, WEB_ACTIVE_USER, MOBILE_ACTIVE_USER, CONV_CLIENT;
 
 $(document).ready(function () {
-    $("#call").click(function () {})
+    $("#radio1").click(function () {
+        console.log("Kevin")
+        $("#to-num").val("17326157295")
+    })
+    $("#radio2").click(function () {
+        console.log("Tony")
+        $("#to-num").val("14087726269")
+    })
 })
 
 
