@@ -8,7 +8,7 @@ $(document).ready(function () {
         $("#to-num").val("17326157295")
     })
     $("#radio2").click(function () {
-        console.log("Tony")
+
         $("#to-num").val("14087726269")
     })
 })
